@@ -1,0 +1,101 @@
+affiliations:
+  org1: []
+  ibp: []
+bccsp:
+  default: SW
+  sw:
+    filekeystore:
+      keystore: msp/keystore
+    hash: SHA2
+    security: 256
+ca:
+  certfile: /crypto/tlsca/cert.pem
+  chainfile: /crypto/tlsca/chain.pem
+  keyfile: /crypto/tlsca/key.pem
+  name: tlsca
+cfg:
+  affiliations:
+    allowremove: true
+  identities:
+    allowremove: true
+    passwordattempts: 10
+cors:
+  enabled: false
+  origins:
+  - '*'
+crl:
+  expiry: 24h0m0s
+crlsizelimit: 512000
+db:
+  datasource: /data/db/ca.db
+  tls:
+    client: {}
+    enabled: false
+  type: sqlite3
+debug: false
+intermediate:
+  enrollment:
+    Type: ""
+    name: ""
+  parentserver: {}
+  tls:
+    client: {}
+ldap:
+  attribute:
+    converters:
+    - {}
+    maps:
+      groups:
+      - {}
+    names:
+    - uid
+    - member
+  enabled: false
+  tls:
+    client: {}
+  url: ldap://<adminDN>:<adminPassword>@<host>:<port>/<base>
+metrics:
+  provider: prometheus
+  statsd:
+    address: 127.0.0.1:8125
+    network: udp
+    prefix: server
+    writeinterval: 10s
+operations:
+  listenaddress: 0.0.0.0:9443
+  metrics: {}
+  tls:
+    enabled: true
+port: 7054
+registry:
+  identities:
+  - attrs:
+      hf.AffiliationMgr: true
+      hf.GenCRL: true
+      hf.IntermediateCA: true
+      hf.Registrar.Attributes: '*'
+      hf.Registrar.DelegateRoles: '*'
+      hf.Registrar.Roles: '*'
+      hf.Revoker: true
+    name: admin
+    pass: adminpw
+    type: client
+  maxenrollments: -1
+signing:
+  default:
+    authremote: {}
+    caconstraint: {}
+    expiry: 131400h0m0s
+    usage:
+    - signing
+    - key encipherment
+    - server auth
+    - client auth
+    - key agreement
+  profiles: null
+tls:
+  certfile: /tmp/data/orderingca/tlsca/tls-cert.pem
+  clientauth:
+    type: noclientcert
+  enabled: true
+  keyfile: /tmp/data/orderingca/tlsca/tls-key.pem

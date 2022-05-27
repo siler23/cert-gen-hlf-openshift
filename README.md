@@ -1,0 +1,244 @@
+# Cert Generation for IBM Supported Hyperledger Fabric Environment on OpenShift 
+
+## Generate Required Certs
+
+1. Clone github project  
+
+    ```
+    git clone https://github.com/siler23/cert-gen-hlf-openshift.git
+    ```
+
+2. Set variables in `GENCERTS_VARS.env` (**`OSHIFT_PROJECT` must be set to the project you are going to deploy blockchain on and `OSHIFT_HOSTNAME` must be set to your cluster hostname or you will have problems later.**)
+
+    1. If you do not have your OpenShift hostname, you can retrieve it using the following command:
+
+        ```
+        oshift_hostname="$(oc get route console -n openshift-console -ojsonpath='{.spec.host}')" && echo "${oshift_hostname#*console-openshift-console.}"
+        ```
+
+        Example Output
+
+        ```
+        apps.helloworld.dmz
+        ```
+
+3. Run `./gencerts.sh` from inside cloned directory
+
+4. Either give your CSRs to an external CA or fulfill them yourself with `./signcerts.sh` 
+
+5. Place your certs in `bchain/certs` (if you didn't use signcerts)
+
+## Replace blockchain console tls Certificate
+
+
+1. Source `GENCERTS_VARS.env` environment file to make sure you are using the right PROJECT and CERT2 name
+
+    ```
+    source ./GENCERTS_VARS.env 
+    ```
+
+2. Create OpenShift project
+
+    ```
+    oc new-project ${OSHIFT_PROJECT}
+    ```
+
+3. Create console tls secret
+
+    ```
+    oc create secret generic console-tls-secret --from-file=tls.crt=bchain/certs/${ibp_console_name}.chain --from-file=tls.key=bchain/keys/${ibp_console_name}.key -n ${OSHIFT_PROJECT}
+    ```
+
+    Example Output:
+
+    ```
+    secret/console-tls-secret created
+    ```
+
+4. 
+    1. **If not yet created**, create console using newly minted `console-tls-secret` in the specified project
+
+    2. **If already created**, update console with patch
+    
+        ```
+        oc patch ibpconsole ${ibp_console_name} -p '{"spec": {"tlsSecretName": "console-tls-secret"}}' --type=merge
+        ```
+
+        This will result in the IBM Blockchain Platform operator creating a revision of the console deployment to incorporate the new tls secret. Once the console pod is running again, you should be able to access the old console url and it should now be using your new certificate (which you can see if you check in your browser).
+
+## Replace OpenShift Certificate
+
+1. Add custom-ca to CA bundle
+
+    1. Set Variables
+
+        ```
+        ROOTCACERTFILE="$HOME/fabric-ca/gencerts/IBM-ROOT/certs/IBM-ROOT.cert"
+        ```
+
+    2. Create configmap
+
+        ```
+        oc create configmap custom-ca --from-file=ca-bundle.crt="${ROOTCACERTFILE}" -n openshift-config
+        ```
+
+        Example Output:
+
+        ```
+        configmap/custom-ca created
+        ```
+
+    3. Update cluster
+
+        ```
+        oc patch proxy/cluster \
+        --type=merge \
+        --patch='{"spec":{"trustedCA":{"name":"custom-ca"}}}'
+        ```
+
+        Example Output:
+
+        ```
+        proxy.config.openshift.io/cluster patched
+        ```
+
+2. Add tls cert for ingress
+
+    1. Set variables
+
+        ```
+        CERTCHAIN="bchain/certs/${ingress_name}.chain"
+        ```
+
+        ```
+        CERTKEY="bchain/keys/${ingress_name}.key"
+        ```
+
+    2. Create secret
+
+        ```
+        oc create secret tls custom-ca-ingress-cert --cert=$CERTCHAIN --key=$CERTKEY -n openshift-ingress
+        ```
+
+        Example Output:
+
+        ```
+        secret/custom-ca-ingress-cert created
+        ```
+
+    3. Patch ingress controller to use new cert 
+
+        ```
+        oc patch ingresscontroller.operator default --type=merge -p '{"spec":{"defaultCertificate": {"name": "custom-ca-ingress-cert"}}}' -n openshift-ingress-operator
+        ```
+
+        Example Output:
+
+        ```
+        ingresscontroller.operator.openshift.io/default patched
+        ```
+
+    4. Wait for pods to come back up
+
+        ```
+        oc get pods -w -n openshift-ingress
+        ```
+
+        Original Example Output:
+
+        ```
+        NAME                              READY   STATUS        RESTARTS   AGE
+        router-default-69558d59d6-99djq   1/1     Running       0          6m8s
+        router-default-69558d59d6-9nmmr   1/1     Terminating   0          3m
+        router-default-69558d59d6-psxk9   1/1     Running       0          8m42s
+        router-default-844c5bfbb8-cs8ws   0/1     Pending       0          13s
+        ```
+
+        Final Example Output (after a minute or so):
+
+        ```
+        oc get pods
+        NAME                              READY   STATUS    RESTARTS   AGE
+        router-default-69558d59d6-99djq   1/1     Running   0          6m41s
+        router-default-69558d59d6-psxk9   1/1     Running   0          9m15s
+        router-default-844c5bfbb8-cs8ws   1/1     Running   0          46s
+        ```
+
+
+## Blockchain CA cert creation
+
+*NOTE: This assumes that your certs follow the same patterns as those generated by the `signcerts.sh` script. If they don't (maybe you gave them to your CA administrator who named them differently) you will have to rename the certs for this to work or substitute your cert names where appropriate*
+
+1. Source `GENCERTS_VARS.env` environment file to make sure you are using the right CA names
+
+    ```
+    source ./GENCERTS_VARS.env 
+    ```
+
+2. From main directory of github project, set the following environment variables
+
+    ```
+    component_name=${CAS[0]}
+    bchain_dir="${PWD}/bchain"
+    confimap_dir="${bchain_dir}/configmaps"
+    key_dir="${bchain_dir}/keys"
+    cert_dir="${bchain_dir}/certs"
+    ```
+
+3. Apply fabric-ca-server configmaps generated by `gencerts.sh` script
+
+    ```
+    oc apply -f "${confimap_dir}/"
+    ```
+ 
+4. Create secret for ordering ca
+
+    ```
+    oc create secret generic "${component_name}-ca-crypto" --from-file=cert.pem="${cert_dir}/${component_name}-ca.cert" --from-file=chain.pem="${cert_dir}/${component_name}-ca.chain" --from-file=key.pem="${key_dir}/${component_name}-ca.key" --from-file=operations-cert.pem="${cert_dir}/${component_name}-tls.chain" --from-file=operations-key.pem="${key_dir}/${component_name}-tls.key" --from-file=tls-cert.pem="${cert_dir}/${component_name}-tls.chain" --from-file=tls-key.pem="${key_dir}/${component_name}-tls.key"
+    ```
+
+5. Create for ordering tlsca
+
+    ```
+    oc create secret generic "${component_name}-tlsca-crypto" --from-file=cert.pem="${cert_dir}/${component_name}-tlsca.cert" --from-file=chain.pem="${cert_dir}/${component_name}-tlsca.chain" --from-file=key.pem="${key_dir}/${component_name}-tlsca.key"
+    ```
+
+6. Set variables for org1ca
+
+    ```
+    component_name=${CAS[1]}
+    ```
+
+7. Create secret for org1 ca
+
+    ```
+    oc create secret generic "${component_name}-ca-crypto" --from-file=cert.pem="${cert_dir}/${component_name}-ca.cert" --from-file=chain.pem="${cert_dir}/${component_name}-ca.chain" --from-file=key.pem="${key_dir}/${component_name}-ca.key" --from-file=operations-cert.pem="${cert_dir}/${component_name}-tls.chain" --from-file=operations-key.pem="${key_dir}/${component_name}-tls.key" --from-file=tls-cert.pem="${cert_dir}/${component_name}-tls.chain" --from-file=tls-key.pem="${key_dir}/${component_name}-tls.key"
+    ```
+
+8. Create secret for org1 tlsca
+
+    ```
+    oc create secret generic "${component_name}-tlsca-crypto" --from-file=cert.pem="${cert_dir}/${component_name}-tlsca.cert" --from-file=chain.pem="${cert_dir}/${component_name}-tlsca.chain" --from-file=key.pem="${key_dir}/${component_name}-tlsca.key"
+    ```
+
+9. Proceed to create certificate authorities in the blockchain console (for each org) with the same names as those in the `CAS` array in `GENCERTS_VARS.env`
+
+10. Get the base64 string of your intermediate CAs certificate (the one you used to create the blockchain CA certificates)
+
+    For linux:
+    ```
+    base64 -w0 IntermediateCA.cert
+    ```
+
+    For mac:
+    ```
+    base64 IntermediateCA.cert
+    ```
+
+    where `IntermediateCA.cert` is the name of your IntermediateCA pem certificate file
+
+11. Use the Blockchain CAs to create your various blockchain components using the CA names you decided upon before in your script. The only change you'll need to make is adding the base64 of you intermediate CA that you generated in the last step to the root certificates of each organization MSP you create (pasting it in the extra CA and TLS Root Certificates fields as you create each MSP)
+
+Congrats! 
+
+:smile:
