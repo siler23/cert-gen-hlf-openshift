@@ -39,11 +39,47 @@ else
 	exit 1
 fi
 
+if [[ ${#string} == "linux-gnu"* ]]
+then
+	echo -e "\nRunning on Linux: ${OSTYPE}\n"
+	alias base64="base64 -w0"
+elif [[ "$OSTYPE" == "darwin"* ]]
+then
+	echo -e "\nRunning on Mac OSx: ${OSTYPE}\n"
+	alias date="gdate"
+else
+	echo "Operating System Not Supported! Please use Linux or Mac OSX"
+	exit 1
+fi
+
 # Save PROJECT_DIR to use throughout script
 export PROJECT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 # Get environment variables from NFS_VARS.env
 source "${PROJECT_DIR}/GENCERTS_VARS.env"
+
+# Environment variable char checks for common names
+
+for CA in "${CAS[@]}"
+do
+    if [ ${#CA} -gt 57 ]
+    then
+        echo "${CA} is greater than 57 characters. Maximum CA name length is 57 characters."
+        exit 1
+    fi
+done
+
+if [ ${#ibp_console_name} -gt 64 ]
+then
+    echo "${ibp_console_name} is greater than 64 characters. Maximum ibp_console_name length is 64 characters."
+    exit 1
+fi
+
+if [ ${#ingress_name} -gt 64 ]
+then
+    echo "${ingress_name} is greater than 64 characters. Maximum ingress_name length is 64 characters."
+    exit 1
+fi
 
 # Set cert start date 5 minutes early to prevent delays in using certs
 start_date_root="$(date -u --date='5 minutes ago' '+%Y%m%d%H%M%S')Z"
@@ -80,7 +116,7 @@ localityName                    = "${Locality}"
 0.organizationalUnitName        = "${OrgUnit0}"
 1.organizationalUnitName        = "${OrgUnit1}"
 2.organizationalUnitName        = "${OrgUnit2}"
-commonName                      = "*.${OSHIFT_HOSTNAME}"
+commonName                      = "${ingress_name}"
 [ server_cert ]
 # Extensions for server certificates (man x509v3_config).
 basicConstraints = CA:FALSE
@@ -132,7 +168,7 @@ localityName                    = "${Locality}"
 0.organizationalUnitName        = "${OrgUnit0}"
 1.organizationalUnitName        = "${OrgUnit1}"
 2.organizationalUnitName        = "${OrgUnit2}"
-commonName                      = "${OSHIFT_PROJECT}-${ibp_console_name}-console.${OSHIFT_HOSTNAME}"
+commonName                      = "${ibp_console_name}"
 [ server_cert ]
 # Extensions for server certificates (man x509v3_config).
 basicConstraints = CA:FALSE
@@ -261,7 +297,7 @@ do
     0.organizationalUnitName        = "${OrgUnit0}"
     1.organizationalUnitName        = "${OrgUnit1}"
     2.organizationalUnitName        = "${OrgUnit2}"
-	commonName                      = "${OSHIFT_PROJECT}-${CA}-ca.${OSHIFT_HOSTNAME}"
+	commonName                      = "${CA}-server"
 	[ server_cert ]
 	# Extensions for server certificates (man x509v3_config).
 	basicConstraints = CA:FALSE
