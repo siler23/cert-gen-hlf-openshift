@@ -39,19 +39,6 @@ else
 	exit 1
 fi
 
-if [[ ${#string} == "linux-gnu"* ]]
-then
-	echo -e "\nRunning on Linux: ${OSTYPE}\n"
-	alias base64="base64 -w0"
-elif [[ "$OSTYPE" == "darwin"* ]]
-then
-	echo -e "\nRunning on Mac OSx: ${OSTYPE}\n"
-	alias date="gdate"
-else
-	echo "Operating System Not Supported! Please use Linux or Mac OSX"
-	exit 1
-fi
-
 # Save PROJECT_DIR to use throughout script
 export PROJECT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
