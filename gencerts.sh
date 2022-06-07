@@ -91,7 +91,7 @@ default_bits        = 2048
 distinguished_name  = req_distinguished_name
 string_mask         = utf8only
 # SHA-1 is deprecated, so use SHA-2 instead.
-default_md          = sha256
+default_md          = sha384
 # Extension to add when the -x509 option is used.
 req_extensions     = server_cert
 [ req_distinguished_name ]
@@ -127,9 +127,9 @@ keyUsage = critical, digitalSignature
 extendedKeyUsage = critical, OCSPSigning
 EOF
 
-openssl ecparam -out "${bchain_dir}/keys/${ingress_name}.key" -name prime256v1 -genkey -noout
+openssl ecparam -out "${bchain_dir}/keys/${ingress_name}.key" -name secp384r1 -genkey -noout
 chmod 400 "${bchain_dir}/keys/${ingress_name}.key"
-openssl req -new -config "${bchain_dir}/${ingress_name}-openssl.cnf" -sha256 -key "${bchain_dir}/keys/${ingress_name}.key" -out "${bchain_dir}/csr/server/${ingress_name}.csr"
+openssl req -new -config "${bchain_dir}/${ingress_name}-openssl.cnf" -sha384 -key "${bchain_dir}/keys/${ingress_name}.key" -out "${bchain_dir}/csr/server/${ingress_name}.csr"
 openssl req -in "${bchain_dir}/csr/server/${ingress_name}.csr" -text -noout
 
 # Blockchain console cert
@@ -143,7 +143,7 @@ default_bits        = 2048
 distinguished_name  = req_distinguished_name
 string_mask         = utf8only
 # SHA-1 is deprecated, so use SHA-2 instead.
-default_md          = sha256
+default_md          = sha384
 # Extension to add when the -x509 option is used.
 req_extensions     = server_cert
 [ req_distinguished_name ]
@@ -180,9 +180,9 @@ keyUsage = critical, digitalSignature
 extendedKeyUsage = critical, OCSPSigning
 EOF
 
-openssl ecparam -out "${bchain_dir}/keys/${ibp_console_name}.key" -name prime256v1 -genkey -noout
+openssl ecparam -out "${bchain_dir}/keys/${ibp_console_name}.key" -name secp384r1 -genkey -noout
 chmod 400 "${bchain_dir}/keys/${ibp_console_name}.key"
-openssl req -new -config "${bchain_dir}/${ibp_console_name}-openssl.cnf" -sha256 -key "${bchain_dir}/keys/${ibp_console_name}.key" -out "${bchain_dir}/csr/server/${ibp_console_name}.csr"
+openssl req -new -config "${bchain_dir}/${ibp_console_name}-openssl.cnf" -sha384 -key "${bchain_dir}/keys/${ibp_console_name}.key" -out "${bchain_dir}/csr/server/${ibp_console_name}.csr"
 openssl req -in "${bchain_dir}/csr/server/${ibp_console_name}.csr" -text -noout
 
 for CA in "${CAS[@]}"
@@ -195,7 +195,7 @@ do
 	distinguished_name  = req_distinguished_name
 	string_mask         = utf8only
 	# SHA-1 is deprecated, so use SHA-2 instead.
-	default_md          = sha256
+	default_md          = sha384
 	# Extension to add when the -x509 option is used.
 	req_extensions     = blockchain_ca
 	[ req_distinguished_name ]
@@ -235,7 +235,7 @@ do
 	distinguished_name  = req_distinguished_name
 	string_mask         = utf8only
 	# SHA-1 is deprecated, so use SHA-2 instead.
-	default_md          = sha256
+	default_md          = sha384
 	# Extension to add when the -x509 option is used.
 	req_extensions     = blockchain_ca
 	[ req_distinguished_name ]
@@ -272,7 +272,7 @@ do
 	distinguished_name  = req_distinguished_name
 	string_mask         = utf8only
 	# SHA-1 is deprecated, so use SHA-2 instead.
-	default_md          = sha256
+	default_md          = sha384
 	# v3 extensions to add
 	req_extensions     = server_cert
 	[ req_distinguished_name ]
@@ -310,19 +310,19 @@ do
 	EOF
 
 	# Create CSRs
-    openssl ecparam -out "${bchain_dir}/keys/${CA}-ca.key" -name prime256v1 -genkey -noout
+    openssl ecparam -out "${bchain_dir}/keys/${CA}-ca.key" -name secp384r1 -genkey -noout
     chmod 400 "${bchain_dir}/keys/${CA}-ca.key"
-    openssl req -new -config "${bchain_dir}/${CA}-ca-openssl.cnf" -sha256 -key "${bchain_dir}/keys/${CA}-ca.key" -out "${bchain_dir}/csr/ca/${CA}-ca.csr"
+    openssl req -new -config "${bchain_dir}/${CA}-ca-openssl.cnf" -sha384 -key "${bchain_dir}/keys/${CA}-ca.key" -out "${bchain_dir}/csr/ca/${CA}-ca.csr"
 	openssl req -in "${bchain_dir}/csr/ca/${CA}-ca.csr" -text -noout
 
-    openssl ecparam -out "${bchain_dir}/keys/${CA}-tlsca.key" -name prime256v1 -genkey -noout
+    openssl ecparam -out "${bchain_dir}/keys/${CA}-tlsca.key" -name secp384r1 -genkey -noout
     chmod 400 "${bchain_dir}/keys/${CA}-tlsca.key"
-    openssl req -new -config "${bchain_dir}/${CA}-tlsca-openssl.cnf" -sha256 -key "${bchain_dir}/keys/${CA}-tlsca.key" -out "${bchain_dir}/csr/ca/${CA}-tlsca.csr"
+    openssl req -new -config "${bchain_dir}/${CA}-tlsca-openssl.cnf" -sha384 -key "${bchain_dir}/keys/${CA}-tlsca.key" -out "${bchain_dir}/csr/ca/${CA}-tlsca.csr"
 	openssl req -in "${bchain_dir}/csr/ca/${CA}-tlsca.csr" -text -noout
 
-    openssl ecparam -out "${bchain_dir}/keys/${CA}-tls.key" -name prime256v1 -genkey -noout
+    openssl ecparam -out "${bchain_dir}/keys/${CA}-tls.key" -name secp384r1 -genkey -noout
     chmod 400 "${bchain_dir}/keys/${CA}-tls.key"
-    openssl req -new -config "${bchain_dir}/${CA}-tls-openssl.cnf" -sha256 -key "${bchain_dir}/keys/${CA}-tls.key" -out "${bchain_dir}/csr/server/${CA}-tls.csr"
+    openssl req -new -config "${bchain_dir}/${CA}-tls-openssl.cnf" -sha384 -key "${bchain_dir}/keys/${CA}-tls.key" -out "${bchain_dir}/csr/server/${CA}-tls.csr"
 	openssl req -in "${bchain_dir}/csr/server/${CA}-tls.csr" -text -noout
 
 	# Create fabric-ca-server ConfigMaps from base config files (one for ca and one for tlsca)

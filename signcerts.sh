@@ -98,7 +98,7 @@ crl_extensions    = crl_ext
 default_crl_days  = 1095
 copy_extensions = copy
 # SHA-1 is deprecated, so use SHA-2 instead.
-default_md        = sha256
+default_md        = sha384
 name_opt          = ca_default
 cert_opt          = ca_default
 default_days      = 1095
@@ -147,7 +147,7 @@ EOF
 # for each csr gen cert according to it with proper permissions and create cert chain (ca)
 for filename in "${filenames_ca[@]}"
 do
-    openssl ca -batch -config "${bchain_dir}/externalca-openssl.cnf" -extensions blockchain_ca -startdate "${cert_start_date}" -notext -md sha256 -days ${ca_days} -in "${bchain_dir}/csr/ca/${filename}.csr" -out "${bchain_dir}/certs/${filename}.cert"
+    openssl ca -batch -config "${bchain_dir}/externalca-openssl.cnf" -extensions blockchain_ca -startdate "${cert_start_date}" -notext -md sha384 -days ${ca_days} -in "${bchain_dir}/csr/ca/${filename}.csr" -out "${bchain_dir}/certs/${filename}.cert"
     cat "${bchain_dir}/certs/${filename}.cert" "${EXTERNAL_CA_DIR}/certs/${EXTERNAL_CA}.chain" > "${bchain_dir}/certs/${filename}.chain"
     chmod 444 "${bchain_dir}/certs/${filename}.cert" && chmod 444 "${bchain_dir}/certs/${filename}.chain"
     openssl verify -CAfile "${EXTERNAL_CA_DIR}/certs/${EXTERNAL_CA}.chain" "${bchain_dir}/certs/${filename}.cert"
@@ -157,7 +157,7 @@ done
 # for each csr gen cert according to it with proper permissions and create cert chain (server)
 for filename in "${filenames_server[@]}"
 do
-    openssl ca -batch -config "${bchain_dir}/externalca-openssl.cnf" -extensions server_cert -startdate "${cert_start_date}" -notext -md sha256 -days ${tls_days} -in "${bchain_dir}/csr/server/${filename}.csr" -out "${bchain_dir}/certs/${filename}.cert"
+    openssl ca -batch -config "${bchain_dir}/externalca-openssl.cnf" -extensions server_cert -startdate "${cert_start_date}" -notext -md sha384 -days ${tls_days} -in "${bchain_dir}/csr/server/${filename}.csr" -out "${bchain_dir}/certs/${filename}.cert"
     cat "${bchain_dir}/certs/${filename}.cert" "${EXTERNAL_CA_DIR}/certs/${EXTERNAL_CA}.chain" > "${bchain_dir}/certs/${filename}.chain"
     chmod 444 "${bchain_dir}/certs/${filename}.cert" && chmod 444 "${bchain_dir}/certs/${filename}.chain"
     openssl verify -CAfile "${EXTERNAL_CA_DIR}/certs/${EXTERNAL_CA}.chain" "${bchain_dir}/certs/${filename}.cert"
